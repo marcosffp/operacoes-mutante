@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Análise de Eficácia de Testes com Teste de Mutação</title>
+<style>
+  @page { size: A4; margin: 18mm 20mm; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.4; color: #000; margin: 0; }
+  p { margin: 0 0 7pt 0; }
+  h2 { font-size: 13pt; font-weight: bold; margin: 15pt 0 6pt 0; break-after: avoid; }
+  h3 { font-size: 11pt; font-weight: bold; margin: 11pt 0 4pt 0; break-after: avoid; }
+  code { font-family: "Courier New", Courier, monospace; font-size: 9pt; }
+  pre { font-family: "Courier New", Courier, monospace; font-size: 9pt; line-height: 1.35; margin: 4pt 0 10pt 14pt; white-space: pre-wrap; }
+  table { border-collapse: collapse; width: 99.6%; margin: 6pt 0 12pt 0; font-size: 10pt; line-height: 1.35; }
+  th, td { border: 1px solid #000; padding: 4pt 6pt; text-align: center; vertical-align: middle; }
+  td:first-child, th:first-child { text-align: left; }
+  figure { margin: 6pt 0 10pt 0; text-align: center; break-inside: avoid; }
+  figure img { display: block; margin: 0 auto; max-width: 100%; border: 1px solid #999; }
+  figcaption { font-size: 9pt; margin-top: 4pt; }
+  ul { margin: 0 0 8pt 0; padding-left: 22pt; }
+  li { margin-bottom: 3pt; }
+
+  /* capa */
+  .capa { height: 255mm; text-align: center; position: relative; break-after: page; }
+  .capa .topo { padding-top: 6mm; font-size: 12pt; line-height: 1.6; }
+  .capa .titulo { position: absolute; top: 88mm; left: 0; right: 0; }
+  .capa .titulo .l1 { font-size: 12pt; margin-bottom: 14pt; }
+  .capa .titulo .l2 { font-size: 20pt; font-weight: bold; line-height: 1.3; }
+  .capa .aluno { position: absolute; bottom: 38mm; left: 0; right: 0; font-size: 12pt; line-height: 1.8; }
+  .capa .data { position: absolute; bottom: 0; left: 0; right: 0; font-size: 12pt; }
+</style>
+</head>
+<body>
+
+<div class="capa">
+  <div class="topo">
+    PONTIFÍCIA UNIVERSIDADE CATÓLICA DE MINAS GERAIS<br>
+    Disciplina: Teste de Software<br>
+    Professor: Cleiton Tavares
+  </div>
+  <div class="titulo">
+    <div class="l1">Trabalho prático</div>
+    <div class="l2">Análise de Eficácia de Testes<br>com Teste de Mutação</div>
+  </div>
+  <div class="aluno">
+    Aluno: Marcos Alberto Ferreira Pinto<br>
+    Matrícula: 854547<br>
+    Repositório: https://github.com/marcosffp/operacoes-mutante
+  </div>
+  <div class="data">Outubro de 2026</div>
+</div>
+
+<h2>1. Análise Inicial</h2>
+<p>Primeiro rodei os 50 testes que já vinham no projeto com <code>npm test -- --coverage</code>. Todos passaram. Depois configurei o StrykerJS com o runner do Jest e executei <code>npx stryker run</code>, que gerou 213 mutantes a partir do arquivo <code>src/operacoes.js</code>.</p>
+<table>
+  <tr><th>Medida (execução inicial)</th><th>Resultado</th></tr>
+  <tr><td>Cobertura de funções / linhas</td><td>100% / 98,64%</td></tr>
+  <tr><td>Cobertura de statements / branches</td><td>85,41% / 58,82%</td></tr>
+  <tr><td>Mutation score</td><td>73,71%</td></tr>
+  <tr><td>Mutantes mortos / timeout / vivos / sem cobertura</td><td>154 / 3 / 44 / 12</td></tr>
+</table>
+<figure><img src="img/ini-resumo.png" style="width:85%"><figcaption>Figura 1: relatório do Stryker na primeira execução.</figcaption></figure>
+<p>A diferença entre os dois números é grande. Pela cobertura, 100% das funções e quase todas as linhas são executadas, o que parece uma suíte boa. Mas só 73,71% dos defeitos inseridos pelo Stryker foram percebidos pelos testes, e 56 mutantes passaram sem nenhum teste falhar. A cobertura só diz que a linha rodou, não diz se algum teste conferiu o resultado dela. Aqui cada função tem um único teste com uma entrada simples, e a cobertura de branches (58,82%) já indicava que quase nenhum caminho de erro ou de fronteira era exercitado.</p>
+
+<h2>2. Análise de Mutantes Críticos</h2>
+<p>Escolhi três grupos de mutantes que sobreviveram na primeira execução. Em todos eles o problema estava nos testes, e não no código, ou seja, são mutantes não-equivalentes.</p>
+
+<h3>2.1 isMaiorQue e isMenorQue (troca de operador relacional)</h3>
+<p>Na linha 104 o Stryker trocou <code>a &gt; b</code> por <code>a &gt;= b</code>, e na linha 105 trocou <code>a &lt; b</code> por <code>a &lt;= b</code>. Também gerou a versão <code>return true</code> das duas funções. Todos sobreviveram.</p>
+<p>O teste 44 só chama <code>isMaiorQue(10, 5)</code> e o 45 só chama <code>isMenorQue(5, 10)</code>, os dois com resposta verdadeira. Para esses valores o original e o mutante respondem igual. Faltou o caso em que <code>a</code> é igual a <code>b</code>, que é onde <code>&gt;</code> e <code>&gt;=</code> se diferenciam, e faltou um caso com resposta falsa. Por exemplo, na aula vimos a função <code>max(x, y)</code>, em que o mutante sobrevive enquanto nenhum teste usa uma entrada que distinga os dois programas. Lá o par (4, 4) não distinguia <code>&gt;</code> de <code>&lt;</code>; aqui o par <code>a === b</code> é justamente o que distingue <code>&gt;</code> de <code>&gt;=</code>.</p>
+<figure><img src="img/ini-comparacao-mediana.png" style="width:58%"><figcaption>Figura 2: relatório inicial, linhas 102 a 112. Pontos vermelhos são mutantes vivos e laranja são sem cobertura.</figcaption></figure>
+
+<h3>2.2 celsiusParaFahrenheit e fahrenheitParaCelsius (troca de operador aritmético)</h3>
+<p>Na linha 93, <code>celsius * 9/5</code> virou <code>celsius * 9 * 5</code> e também <code>celsius / 9/5</code>. Na linha 94, <code>(f - 32) * 5/9</code> virou <code>(f - 32) * 5 * 9</code> e <code>(f - 32) / 5/9</code>. Os quatro sobreviveram.</p>
+<p>Os testes 38 e 39 usam só 0 °C e 32 °F. Com 0 °C o termo <code>celsius * ...</code> vale zero em qualquer versão, e com 32 °F o termo <code>(f - 32)</code> zera tudo. As fórmulas erradas devolvem 32 e 0, que é justamente o esperado. É a mesma coincidência do <code>fatorial(3)</code> visto em aula: o valor escolhido dá o mesmo resultado do mutante e o teste passa por acaso.</p>
+<figure><img src="img/ini-clamp-temperatura.png" style="width:58%"><figcaption>Figura 3: relatório inicial, linhas 83 a 94, com os mutantes vivos de <code>clamp</code>, <code>isDivisivel</code> e das conversões de temperatura.</figcaption></figure>
+
+<h3>2.3 medianaArray (remoção de comando e bloco)</h3>
+<p>Nas linhas 109 a 112 o Stryker removeu o <code>.sort(...)</code>, trocou o comparador por <code>() =&gt; undefined</code> e por <code>a + b</code>, e esvaziou o bloco <code>if (sorted.length % 2 === 0) { ... }</code>. Dentro desse bloco ainda gerou três mutações aritméticas, todas sem cobertura.</p>
+<p>O único teste (47) usa <code>[1, 2, 3, 4, 5]</code>, que já está ordenado, então tirar ou estragar o <code>sort</code> não muda nada. Como o array tem tamanho ímpar, o bloco do caso par nunca é executado. Aqui a cobertura de linhas também engana: as linhas 109 a 111 constavam como cobertas e mesmo assim cinco mutantes sobreviveram nelas.</p>
+
+<h2>3. Solução Implementada</h2>
+<p>Mantive os 50 testes originais e acrescentei 28 em <code>test/operacoes.test.js</code>, totalizando 78. Os primeiros 25 mataram os mutantes não-equivalentes dos grupos analisados acima e dos demais; os 3 últimos usam entradas de borda do JavaScript e vieram de uma segunda rodada, explicada na seção 4. Os testes estão agrupados por tipo de fraqueza e cada um tem um comentário com os mutantes que ele mata. Segui quatro cuidados: testar valores de fronteira, testar também o lado falso das decisões, escolher valores que não coincidam com o resultado do mutante e conferir a mensagem das exceções (um <code>toThrow()</code> sem argumento aceita qualquer erro, até uma mensagem trocada por texto vazio).</p>
+<pre>expect(isMaiorQue(5, 5)).toBe(false);          // mata &gt;=
+expect(isMenorQue(5, 5)).toBe(false);          // mata &lt;=
+expect(celsiusParaFahrenheit(100)).toBe(212);
+expect(fahrenheitParaCelsius(212)).toBe(100);
+expect(medianaArray([3, 1, 2])).toBe(2);       // exige o sort
+expect(medianaArray([1, 2, 3, 4])).toBe(2.5);  // executa o ramo par
+expect(clamp(-0, 0, 10)).toBe(-0);             // distingue -0 de +0
+expect(produtoArray({ length: 0 })).toBe(1);   // entrada array-like</pre>
+<p>Esses testes funcionam porque só a fórmula correta dá 212 para 100 °C (a versão <code>*9*5</code> daria 4532 e a <code>/9/5</code> daria cerca de 34,2). Em <code>isMaiorQue(5, 5)</code> o original devolve falso e o mutante <code>&gt;=</code> devolve verdadeiro. A mediana de <code>[3, 1, 2]</code> só é 2 se o array for ordenado antes, e <code>[1, 2, 3, 4]</code> obriga a executar o ramo par, cujo resultado correto (2,5) muda com qualquer uma das três mutações aritméticas. Os demais sobreviventes foram tratados do mesmo jeito: mensagens e condições dos erros, <code>mediaArray([])</code>, respostas falsas de <code>isPar</code>, <code>isImpar</code>, <code>isDivisivel</code> e <code>isEqual</code>, <code>isPrimo</code> com 0, 1, negativos e compostos, e <code>clamp</code> abaixo e acima do intervalo. Os 78 testes passam no código original.</p>
+
+<h2>4. Resultados Finais</h2>
+<table>
+  <tr><th>Execução</th><th>Mortos</th><th>Timeout</th><th>Vivos</th><th>Score</th></tr>
+  <tr><td>Inicial, 50 testes</td><td>154</td><td>3</td><td>44 + 12 sem cobertura</td><td>73,71%</td></tr>
+  <tr><td>Com 75 testes</td><td>203</td><td>3</td><td>7</td><td>96,71%</td></tr>
+  <tr><td>Final, com 78 testes</td><td>206</td><td>3</td><td>4</td><td>98,12%</td></tr>
+</table>
+<figure><img src="img/meio-resumo.png" style="width:66%"><figcaption>Figura 4: segunda execução, com 75 testes. Restaram 7 vivos.</figcaption></figure>
+<figure><img src="img/fim-resumo.png" style="width:66%"><figcaption>Figura 5: execução final, com 78 testes. Restaram 4 vivos e nenhum mutante foi ignorado.</figcaption></figure>
+<p>A cobertura final é de 100% em statements, branches, funções e linhas (antes eram 85,41% e 58,82% nos dois primeiros), e o mutation score foi de 73,71% para 98,12%. Mesmo com 100% de cobertura ainda restam 4 mutantes vivos, o que confirma que cobertura não garante a detecção dos defeitos.</p>
+<p>Depois do 96,71% analisei os 7 mutantes que sobraram. Três deles (<code>produtoArray</code> linha 84 e <code>clamp</code> linhas 88 e 89) pareciam equivalentes, porque com números e arrays comuns nenhum teste os distingue. Mas eles só são equivalentes para entradas comuns: com <code>-0</code> o <code>clamp</code> devolve <code>0</code> no mutante e <code>-0</code> no original (o <code>toBe</code> usa <code>Object.is</code> e percebe), e com o objeto <code>{ length: 0 }</code> o mutante do <code>produtoArray</code> chama <code>reduce</code> e lança erro. Acrescentei esses 3 testes e os 3 mutantes morreram, chegando aos 98,12%. São entradas fora do uso normal das funções, mas mostram que a equivalência depende das entradas consideradas.</p>
+<p>Os 4 que continuam vivos estão na linha 19 do <code>fatorial</code> (<code>if (n === 0 || n === 1) return 1</code>) e são equivalentes em qualquer entrada: para n = 0 e n = 1 o laço não executa e o resultado já é 1, então o <code>if</code> é redundante. É um equivalente por redundância; o do exemplo da aula era a reescrita <code>resultado = resultado * i</code>, mas a definição é a mesma, comportamento idêntico ao original. No script <code>evidencias/prova-equivalentes.js</code> comparei original e mutante com 202 entradas por mutante, incluindo <code>NaN</code>, <code>-0</code>, textos, BigInt e objetos com <code>valueOf</code>, sem nenhuma diferença.</p>
+<p>Pela fórmula da aula, score = 100 × D / (N − E), com N = 213, E = 4 e D = 209 (206 mortos mais 3 timeouts), o resultado é 100 × 209 / 209 = 100%. O Stryker mostra 98,12% porque não sabe que esses 4 são equivalentes. Não marquei nenhum mutante como ignorado e não alterei o código: <code>src/operacoes.js</code> está idêntico ao original.</p>
+
+<h2>5. Conclusão</h2>
+<p>O trabalho mostrou na prática que cobertura de código e qualidade dos testes não são a mesma coisa: o projeto tinha 100% das funções e 98,64% das linhas cobertas e, mesmo assim, mais de um quarto dos defeitos inseridos passava despercebido. O teste de mutação responde se os testes realmente falhariam diante de um bug e ainda indica onde está a fraqueza, seja uma fronteira não testada, um valor que coincide com o resultado errado, uma mensagem de erro sem verificação ou um ramo que nunca executa. Também aprendi que nem todo mutante vivo é culpa da suíte, e que separar os equivalentes dos não-equivalentes evita tanto o esforço inútil de tentar matar o impossível quanto o risco de apenas ajustar a nota. A equivalência também depende das entradas: três mutantes que pareciam equivalentes foram mortos com entradas de borda. O custo de rodar os testes para cada mutante existe, mas aqui valeu a pena.</p>
+
+</body>
+</html>

@@ -1,0 +1,11 @@
+--------------|---------|----------|---------|---------|-------------------
+File          | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+--------------|---------|----------|---------|---------|-------------------
+All files     |     100 |      100 |     100 |     100 |                   
+ operacoes.js |     100 |      100 |     100 |     100 |                   
+--------------|---------|----------|---------|---------|-------------------
+Test Suites: 1 passed, 1 total
+Tests:       78 passed, 78 total
+Snapshots:   0 total
+Time:        0.2 s, estimated 1 s
+Ran all test suites.
